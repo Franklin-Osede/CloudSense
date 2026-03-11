@@ -1,0 +1,18 @@
+{
+  "title": "CloudSense AI - Cost Anomalies",
+  "uid": "cloudsense-01",
+  "panels": [
+    {
+      "title": "Total Spend (Simulated)",
+      "type": "stat",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 0 }
+    },
+    {
+      "title": "Anomaly Timeline & AI Explanations",
+      "type": "logs",
+      "gridPos": { "h": 16, "w": 24, "x": 0, "y": 8 }
+    }
+  ],
+  "schemaVersion": 39,
+  "version": 1
+}

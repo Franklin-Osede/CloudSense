@@ -1,0 +1,21 @@
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: cloudsense-ai-job
+  namespace: cloudsense-app
+spec:
+  schedule: "0 * * * *" # Run every hour
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          serviceAccountName: default # In reality, attach an IAM Role for Service Accounts (IRSA) here
+          containers:
+            - name: cloudsense-ai
+              # Ensure in the real world we push to ECR/DockerHub
+              image: your-dockerhub-user/cloudsense-ai:latest
+              imagePullPolicy: IfNotPresent
+              env:
+                - name: AWS_DEFAULT_REGION
+                  value: "us-east-1"
+          restartPolicy: OnFailure
