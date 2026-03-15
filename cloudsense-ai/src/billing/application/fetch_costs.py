@@ -1,10 +1,10 @@
 from typing import List
 from datetime import date
 from src.billing.domain.models import CostData, AccountSpend, ServiceCost
-from src.billing.infrastructure.aws_cost_client import FakeAwsCostClient
+from src.billing.infrastructure.aws_cost_client import AwsCostClient
 
 class FetchCostsUseCase:
-    def __init__(self, cost_client: FakeAwsCostClient):
+    def __init__(self, cost_client: AwsCostClient):
         self.cost_client = cost_client
 
     def execute(self, start_date: date, end_date: date) -> CostData:

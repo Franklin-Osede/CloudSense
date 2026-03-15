@@ -2,7 +2,7 @@ from datetime import date, timedelta
 import logging
 import json
 
-from src.billing.infrastructure.aws_cost_client import FakeAwsCostClient
+from src.billing.infrastructure.aws_cost_client import AwsCostClient
 from src.billing.application.fetch_costs import FetchCostsUseCase
 from src.analysis.infrastructure.bedrock_client import ClaudeBedrockClient
 from src.analysis.application.detect_anomaly import DetectAnomalyUseCase
@@ -13,7 +13,7 @@ def main():
     logging.info("Starting CloudSense AI - Cost Collection Cycle")
     
     # 1. Setup Clients & Use Cases
-    cost_client = FakeAwsCostClient()
+    cost_client = AwsCostClient()
     fetch_costs_uc = FetchCostsUseCase(cost_client)
     
     bedrock_client = ClaudeBedrockClient()
