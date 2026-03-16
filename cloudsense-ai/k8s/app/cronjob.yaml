@@ -12,8 +12,7 @@ spec:
           serviceAccountName: default # In reality, attach an IAM Role for Service Accounts (IRSA) here
           containers:
             - name: cloudsense-ai
-              # Ensure in the real world we push to ECR/DockerHub
-              image: your-dockerhub-user/cloudsense-ai:latest
+              image: frankdevelex/cloudsense-ai:latest
               imagePullPolicy: IfNotPresent
               env:
                 - name: AWS_DEFAULT_REGION
