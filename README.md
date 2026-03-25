@@ -2,41 +2,46 @@
 
 <div align="center">
   <img src="https://img.shields.io/badge/Python-3.11+-blue.svg" alt="Python Version">
-  <img src="https://img.shields.io/badge/AWS-Bedrock-orange.svg" alt="AWS Bedrock">
+  <img src="https://img.shields.io/badge/AWS-Bedrock-orange.svg" alt="AWS Bedrock (Claude)">
   <img src="https://img.shields.io/badge/Kubernetes-EKS-326CE5.svg" alt="Kubernetes EKS">
   <img src="https://img.shields.io/badge/GitOps-ArgoCD-ef7b4d.svg" alt="ArgoCD">
   <img src="https://img.shields.io/badge/IaC-Terraform-844FBA.svg" alt="Terraform">
+  <img src="https://img.shields.io/badge/Architecture-DDD-brightgreen.svg" alt="Domain-Driven Design">
 </div>
 
 <br />
 
-> **A Multi-Account AWS FinOps Platform with AI Anomaly Detection and GitOps CI/CD.**
+> **A Multi-Account AWS FinOps Platform with AI Anomaly Detection and Declarative GitOps CI/CD.**
 
-CloudSense AI is a professional DevOps/Cloud engineering project built to solve a crucial FinOps challenge: automatically identifying, analyzing, and explaining unexpected AWS billing spikes using **Generative AI** (AWS Bedrock / Claude).
-
----
-
-## 🎯 Project Overview
-
-This architecture leverages bleeding-edge Cloud Native and Machine Learning technologies to provide intelligent cost oversight. The system collects cost data from AWS, feeds it into an advanced AI model capable of financial reasoning, and emits highly detailed anomalies and actionable recommendations.
-
-### Key Capabilities:
-- **Intelligent FinOps**: Replaces manual cost analysis with automated AI evaluations.
-- **GitOps Methodology**: Entire workload lifecycle is managed declaratively via ArgoCD on EKS.
-- **Robust Software Engineering**: Python application strictly built using Domain-Driven Design (DDD) and Test-Driven Development (TDD). 
-- **Full Observability Stack**: Prometheus, Promtail, Loki, and Grafana integrated for metrics and logs.
-- **Infrastructure as Code**: End-to-end AWS provisioning with Terraform.
+CloudSense AI is an enterprise-grade, DevOps/Cloud Engineering platform designed to solve one of the most persistent FinOps challenges: automatically identifying, contextualizing, and remediating unexpected AWS billing spikes. By integrating **Generative AI** (AWS Bedrock / Anthropic Claude), CloudSense moves beyond static alerting into the realm of intelligent financial reasoning and proactive recommendations.
 
 ---
 
-## 🏛️ Architecture & Workflow
+## 🎯 Project Overview & Core Differentiators
 
-### 1. High-Level Infrastructure (AWS & K8s)
+Unlike standard AWS Budgets or basic Cost Explorer alerts, this architecture leverages real-time Cloud Native orchestration and Machine Learning models to provide "human-readable" cost oversight. The system collects cost data from AWS, feeds the anomalous datasets into an advanced LLM capable of FinOps reasoning, and emits highly detailed metrics and remediation steps.
+
+### Deep-Dive Capabilities:
+- **Intelligent FinOps Reasoning**: Anomaly detection logic (`>50%` above expected baselines) automatically triggers a consultative AI review using Bedrock's `InvokeModel` APIs.
+- **GitOps App of Apps Methodology**: The entire cluster workload lifecycle (`cloudsense-app`, `observability`) is managed purely via declarative state using ArgoCD directly synced to this repository.
+- **Strict Domain-Driven Design (DDD)**: Python business logic is cleanly decoupled into `billing` (fetch mechanisms) and `analysis` (AI reasoning) domains, entirely independent of the infrastructure layer.
+- **Test-Driven Development (TDD)**: Comprehensive unit tests developed before the business logic, fully ensuring reliable and reproducible AI integrations and cost transformations.
+- **End-to-End Infrastructure as Code (IaC)**: Granular Terraform definitions for AWS VPC networking, EKS Clusters, IAM policies, and Helm Provider deployments.
+- **Full Observability Stack**: Prometheus (metrics tracing), Loki (log aggregation), and Grafana integrated to visualize the JSON-structured anomalies emitted by the K8s CronJob.
+
+---
+
+## 🏛️ Comprehensive Architecture & Workflows
+
+### 1. High-Level Infrastructure (AWS & Kubernetes Topology)
+
+The architecture is explicitly designed around ephemeral, containerized job execution to maintain minimal compute footprints while polling for FinOps spikes.
 
 ```mermaid
 graph TD
-    subgraph AWS Cloud
-        CostData[AWS Cost Explorer API]
+    subgraph AWS Control Plane
+        CE[AWS Cost Explorer API]
+        IAM[IAM Roles: Bedrock/Lambda Exec]
         Bedrock[AWS Bedrock - Claude AI]
     end
 
@@ -44,116 +49,116 @@ graph TD
         Argo[ArgoCD GitOps Controller]
         
         subgraph Namespace: cloudsense-app
-            Cron[CronJob: cloudsense-ai-job]
-            PythonApp[/Python DDD Engine/]
-            Cron -->|Instantiates| PythonApp
+            CronJob[CronJob: cloudsense-ai-job]
+            App[/Python DDD Engine - Docker/]
+            CronJob -->|Schedules| App
         end
         
         subgraph Namespace: observability
-            Prometheus[Prometheus]
+            Prometheus[Prometheus Metrics]
             Loki[Loki Log Aggregation]
             Grafana[Grafana Dashboards]
         end
         
-        Argo -->|Declarative Sync| Cron
-        Argo -->|Declarative Sync| Prometheus
+        Argo -->|Declarative Sync: apps.yaml| CronJob
+        Argo -->|Declarative Sync: apps.yaml| Prometheus
     end
 
-    PythonApp -->|1. Fetch Billing Data| CostData
-    PythonApp -->|2. Analyze via Prompt Engineering| Bedrock
-    PythonApp -->|3. Output JSON Metrics & Logs| Loki
-    Loki -->|Visualize| Grafana
+    App -->|1. Assume IAM Role & Fetch API| CE
+    App -->|2. Detect >50% Spike| App
+    App -->|3. Prompt Contextual AI| Bedrock
+    App -->|4. Output JSON Payload| Loki
+    Loki -->|Visualize Spikes| Grafana
 ```
 
-### 2. Application Domain Flow (Python Engine)
+### 2. Python Application Domain Flow (DDD Implementation)
 
-The core logic operates as a scheduled Kubernetes Job, separating infrastructure from the business domain.
+The Python core engine acts as a bridge between data fetching (`FetchCostsUseCase`) and intelligent processing (`DetectAnomalyUseCase`).
 
 ```mermaid
 sequenceDiagram
-    participant K8s as EKS CronJob
+    participant K8s as EKS CronJob Scheduler
     participant Main as Python Core (main.py)
     participant CE as AWS Cost Explorer
-    participant Claude as AWS Bedrock
-    participant Loki as K8s stdout (Loki)
+    participant Claude as AWS Bedrock (Claude)
+    participant Loki as Container stdout (Loki)
     
-    K8s->>Main: Trigger scheduled cycle
+    K8s->>Main: Trigger execution cycle
     activate Main
     Main->>CE: fetch_costs_uc.execute(date_range)
-    CE-->>Main: Cost Data (JSON)
-    Main->>Claude: detect_anomaly_uc.execute(CostData, baseline)
-    Claude-->>Main: AI Analysis Result & Recommendations (JSON)
-    Main->>Loki: Emit Structured Logs (Anomalies & AI Summary)
+    Note over CE,Main: Returns raw Pagination/Cost arrays
+    CE-->>Main: CostData (Pydantic Models)
+    
+    Main->>Main: Parse Domain ServiceCosts
+    Main->>Claude: detect_anomaly_uc.execute(CostData, base_expected)
+    Note over Main: If ((Amount - Baseline) / Baseline * 100) >= 50.0%
+    Note over Main,Claude: Transmit anomalies payload via Boto3 invoking Claude
+    Claude-->>Main: Natural Language Analysis & Savings Estimations
+    
+    Main->>Loki: Emit Structured JSON (Anomalies & AI Summary)
     deactivate Main
 ```
 
 ---
 
-## 🚀 Technology Stack
+## 🧠 Business Logic Deep Dive: Anomaly Detection
 
-| Domain | Technologies Used |
-| :--- | :--- |
-| **Cloud & FinOps** | AWS Services (EKS, IAM, VPC, Bedrock, Cost Explorer) |
-| **Infrastructure as Code** | Terraform, Helm |
-| **GitOps & Orchestration**| Kubernetes, ArgoCD, App of Apps Pattern |
-| **Application Layer** | Python, Pydantic, Boto3, Domain-Driven Design (DDD) |
-| **Testing & CI/CD** | Pytest (TDD), GitHub Actions, Makefiles |
-| **Observability** | Prometheus, Loki, Grafana, Promtail |
+Located in `src/analysis/application/detect_anomaly.py`, the `DetectAnomalyUseCase` is the brain of the platform.
+
+1. **Threshold Filtering:** The system implements a hard threshold (`self.anomaly_threshold_percent = 50.0`). Any AWS service experiencing a daily cost spike 50% above the dynamically calculated or hardcoded baseline is flagged as an anomaly.
+2. **Contextual Aggregation:** Flagged anomalies are aggregated into a specialized prompt structure.
+3. **AI Consultation:** The structured anomalies are sent to AWS Bedrock. The Claude model is instructed to act as an AWS FinOps engineer.
+4. **Actionable Recommendations:** The AI responds with human-readable reasoning and explicit `Recommendation` objects, calculating the precise *estimated savings* if the anomalous resources are terminated.
 
 ---
 
-## 💻 Repository Structure
+## 🧱 Infrastructure Details
 
-```text
-.
-├── cloudsense-ai/
-│   ├── src/                 # Python Engine (DDD Architecture)
-│   │   ├── analysis/        # AI Anomaly Detection Domain
-│   │   └── billing/         # AWS Cost Fetching Domain
-│   ├── tests/               # Pytest TDD Suite
-│   ├── terraform/           # IaC for VPC, EKS, IAM, and ArgoCD
-│   ├── k8s/                 # Kubernetes Manifests & ArgoCD Apps
-│   ├── dashboards/          # Grafana JSON Dashboards
-│   ├── Makefile             # Abstracted Developer Operations
-│   └── Dockerfile           # K8s Workload Image
-└── README.md                # Project Documentation
-```
+### Terraform (`/terraform`)
+- **`eks.tf` & `networking.tf`**: Provisions a highly available EKS cluster spread across multiple AZs within a dedicated VPC.
+- **`iam.tf`**: Enforces the principle of least privilege. Creates specific execution roles with strictly scoped `bedrock:InvokeModel` policies, ensuring the container can only perform authorized AI inferences.
+- **`argocd.tf`**: Uses the Terraform Helm provider to bootstrap ArgoCD directly into the fresh EKS cluster automatically.
+
+### Kubernetes & GitOps (`/k8s`)
+- **App of Apps Pattern (`/k8s/argocd/applications.yaml`)**: ArgoCD monitors the root Git repository and orchestrates two primary child applications: `cloudsense-observability` and `cloudsense-app`.
+- **Stateless CronJobs (`/k8s/app/cronjob.yaml`)**: The Python application is wrapped in a Docker image and executed on a Kubernetes chron schedule, simulating serverless behaviors inside an orchestrated cluster.
 
 ---
 
-## ⚙️ Execution & Demo Instructions
+## 🚀 Deployment & Demo Instructions
 
-> **⚠️ WARNING:** This project provisions real AWS EKS infrastructure. To avoid unexpected charges, strictly follow the cleanup step after testing.
+> **⚠️ CRITICAL WARNING:** This project provisions real AWS EKS clusters and invokes Bedrock models. You **MUST** run the Cleanup (`make destroy`) sequence immediately after your demo to avoid sustained cloud charges.
 
-### Prerequisites
-- AWS CLI configured with administrator credentials.
-- `terraform`, `kubectl`, `docker`, and `make` installed.
-- Python 3.11+ for local unit testing.
+### Prerequisites Ecosystem
+- **AWS CLI** authenticated with `AdministratorAccess` (to provision EKS/IAM).
+- Dedicated tooling: `terraform`, `kubectl`, `docker`, and GNU `make`.
+- **AWS Bedrock Access:** You must have the Anthropic Claude models explicitly enabled/granted in your AWS Bedrock console for the target region.
 
-### 1. Verification (TDD Proof)
-Validate the application's domain logic using the `Makefile` test wrapper:
+### Step 1: Execute The Test Suite (TDD Verification)
+Prove the structural integrity of the pure Python Domain logic without external dependencies.
 ```bash
 cd cloudsense-ai
 make test
 ```
 
-### 2. Infrastructure Deployment
-Automatically initialize Terraform, provision the EKS cluster, configure IAM OIDC, and bootstrap ArgoCD.
+### Step 2: Bootstrap Infrastructure & GitOps
+Initialize Terraform modules, create the VPC + EKS cluster, deploy the Helm charts, and apply the ArgoCD GitOps root manifests.
 ```bash
 cd cloudsense-ai
 make deploy
 ```
-*Note: ArgoCD will automatically detect the Kubernetes manifests in the Git repository and sync the `cloudsense-ai-job` and observability stack.*
+*Note: ArgoCD immediately takes over. It resolves the K8s state against the Github repository and synchronizes the observability namespaces and CronJobs.*
 
-### 3. Run the AI Simulation
-The Python engine runs natively as a managed Docker container in K8s. Perform a manual run to observe the AI analyzing an anomaly in real logs:
+### Step 3: Trigger the AI Anomaly Simulation
+Because the system operates as a scheduled `CronJob`, you can manually trigger a K8s Job to watch the AI evaluate simulated backend workloads immediately:
 ```bash
-kubectl create job --from=cronjob/cloudsense-ai-job manual-run-1 -n cloudsense-app
-kubectl logs -f job/manual-run-1 -n cloudsense-app
+kubectl create job --from=cronjob/cloudsense-ai-job manual-run-test -n cloudsense-app
+kubectl logs -f job/manual-run-test -n cloudsense-app
 ```
+*Observe the JSON output payload where Claude explains the anomalous spending and suggests exact remediations.*
 
-### 4. Cleanup (CRITICAL)
-Destroy all K8s workloads and AWS resources gracefully to preserve cloud hygiene:
+### Step 4: CLEANUP (Mandatory)
+Eliminate all cloud footprints. This purges the Helm releases, the EKS cluster, the VPC, and all associated IAM roles gracefully.
 ```bash
 cd cloudsense-ai
 make destroy
@@ -162,5 +167,5 @@ make destroy
 ---
 
 <div align="center">
-  <p>Built as a demonstrator for modern Cloud Engineering, GitOps, and AI integrations.</p>
+  <p><b>CloudSense AI</b> — Where Cloud Modernization Meets Generative AI.</p>
 </div>
